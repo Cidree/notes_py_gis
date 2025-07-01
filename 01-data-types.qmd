@@ -1,0 +1,117 @@
+---
+title: "Python Fundamentals"
+jupyter: python3
+---
+
+## Variables y tipos de dato
+
+Una variable es un dato que se guarda en la memoria del ordenador. Cada variable es de un tipo de dato:
+
+* Enteros (`Int`)
+
+* Floats (`float`): con decimales
+
+* Strings (`str`)
+
+* Booleans (`bool`)
+
+## Estructuras de datos
+
+Son bloques que permiten organizar y almacenar información junta.
+
+### Tuplas
+
+Son secuencias **inmutables**. Se escriben entre paréntesis.
+
+### Listas
+
+Son secuencias ordenadas y mutables. 
+
+Se escriben entre corchetes. 
+
+Pueden almacenar tipos de dato distintos.
+
+
+```{python}
+route = [
+ (35.6895, 139.6917), 
+ (34.0522, -118.2437), 
+ (51.5074, -0.1278),
+]
+print("Travel route:", route)
+```
+
+Podemos añadir elementos a la lista con `append`.
+
+
+```{python}
+route.append((5.34, 87.12))
+print(route)
+```
+
+### Sets
+
+Colecciones desordenadas de **elementos únicos**. Es decir, eliminan duplicados automáticamente. Es útil para trabajar con identificadores.
+
+### Diccionarios
+
+Parejas de *key-value* muy utilizados. Por ejemplo, para guardar metadatos.
+
+### Consejos de uso
+
+Utilizar tuplas cuando:
+
+* Se necesite un grupo fijo de pares de valores que no deben cambiar (p.ej. coordenadas)
+
+* Guardar datos que serán utilizados como keys de diccionarios
+
+* Asegurar integridad de datos evitando modificaciones accidentales
+
+Utilizar listas cuando:
+
+* Necesite colección ordenada que puede cambiar
+
+* Añadir, eliminar o modificar elementos dinámicamente
+
+* Orden importa
+
+Utilizar sets:
+
+* Eliminar duplicados
+
+* Encontrar elementos comunes entre datasets
+
+* Orden no importa, pero singularidad sí
+
+Utilizar diccionarios:
+
+* Necesitas asociar nombres con valores
+
+* Organización de datos estructurados complejos
+
+## Strings
+
+Al trabajar con con strings podemos aplicar métodos comunes como:
+
+```{python}
+ciudad = "Monforte de Lemos"
+print(ciudad.lower())
+print(ciudad.upper())
+print(ciudad.title())
+print(ciudad.replace('de', 'DEE'))
+```
+
+
+```{python}
+city_names = ["San Francisco", "New York", "Tokyo"]
+city_name = ", ".join(city_names)
+print(f"Joined city name: {city_name}")
+```
+
+```{python}
+path_parts = ["data", "geographic", "elevation", "dem.tif"]
+full_path = "/".join(path_parts)
+print(f"Directorio: {full_path}")
+```
+
+
