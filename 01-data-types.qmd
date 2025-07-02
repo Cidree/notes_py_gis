@@ -114,4 +114,78 @@ full_path = "/".join(path_parts)
 print(f"Directorio: {full_path}")
 ```
 
+## Trabajando con archivos
 
+Al trabjar con archivos se recomienta utilizar `with`, que se encarga de abrir y cerrar incluso si ocurre algún error.
+
+Con `try-except` guardamos errores que puedan ocurrir durante el proceso.
+
+```{python}
+sample_data = """35.6895,139.6917
+34.0522,-118.2437
+51.5074,-0.1278
+-33.8688,151.2093
+48.8566,2.3522"""
+
+output_file = "00_data/coordinates.txt"
+
+try:
+    with open(output_file, "w") as file:
+        file.write(sample_data)
+    print(f"Sample file '{output_file}' has been created successfully.")
+except Exception as e:
+    print(f"An error occurred while creating the file: {e}")
+```
+
+Para manejar errores tenemos:
+
+* `try`: código que puede causar error
+
+* `except`: qué hacer cuándo ocurre un error
+
+* `finally`: código que se ejecuta ocurra o no ocurra el error (opcional)
+
+```{python}
+# Example of exception handling when parsing coordinates
+def parse_coordinates(line):
+    """
+    Parse a line of text into latitude and longitude coordinates.
+    Args:
+    line (str): A string containing coordinates in the format "lat,lon"
+    Returns:
+    tuple: (latitude, longitude) as floats, or None if parsing fails
+    """
+    try:
+        # Attempt to split the line and convert to numbers
+        lat, lon = line.strip().split(",")
+        lat = float(lat) # This might raise ValueError if lat isn't a valid
+        number
+        lon = float(lon) # This might raise ValueError if lon isn't a valid
+        number
+        return lat, lon
+    except ValueError as e:
+    # This happens when we can't convert to float or split doesn't work as
+        print(f"Data format error: {e}. Could not parse line: '{line.strip()}'")
+        return None
+    except Exception as e:
+    # This catches any other unexpected errors
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+# Test with both valid and invalid data
+test_lines = [
+    "35.6895,139.6917", # Valid coordinates (Tokyo)
+    "invalid data", # Invalid format
+    "45.0,-119.0", # Valid
+    "45.0,not_a_number", # Invalid longitude
+    "only_one_value", # Missing comma
+]
+
+print("Testing coordinate parsing:")
+for line in test_lines:
+    coordinates = parse_coordinates(line)
+    if coordinates:
+        print(f"✓ Successfully parsed: {coordinates}")
+    else:
+        print(f"✗ Failed to parse: '{line}'")
+```

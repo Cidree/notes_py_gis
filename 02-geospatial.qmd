@@ -1,0 +1,314 @@
+---
+title: "Análisis geospacial con Python"
+jupyter: python3
+theme: slate
+highlight-style: nord
+format: 
+    html: 
+        embed-resources: true
+---
+
+## Introducción
+
+Paquetes de análisis espacial:
+
+* **Geopandas**:  paquete para datos vectoriales (equivalente a `sf`)
+
+* **Xarray**: paquete para datos multidimensionales (equivalente a `stars`?)
+
+* **Rasterio**: interfaz a GDAL para datos raster (equivalente a `terra`, pero de bajo nivel)
+
+* **Rioxarray**: puente entre Xarray y Rasterio.
+
+Paquetes de visualización interactiva:
+
+* **Leafmap**: interfaz sencilla y unificada para mapas web de múltiples backends (folium, ipyleaflet, maplibre).
+
+* **MapLibre**: mapas 2D y 3D avanzados.
+
+* **HyperCoast**: visualización 3D de datos hiperespectrales con pocas líneas de código.
+
+Paquetes de análisis especializado:
+
+* **WhiteboxTools**: herramientas de geoprocesamiento de análisis hidrológico, análisis del terreno, y análisis de datos LiDAR.
+
+* **Geemap**: puente a Google Earth Engine.
+
+* **DuckDB**: análisis de datos espaciales en base de datos de alto rendimiento.
+
+* **Apache Sedona**: computación distribuida para procesado de datos geoespaciales.
+
+Desarrollo de aplicaciones:
+
+* **Voila y Solara**: creación de aplicaciones con Python y Jupyter.
+
+* **Shiny**: creación de aplicaciones y dashboards.
+
+Vamos a comprobar que los paquetes se cargan correctamente y a crear un primer mapa:
+
+```{python}
+## cargar paquetes
+import geopandas as gpd
+import rasterio
+import xarray as xr
+import rioxarray
+import leafmap
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+```
+
+
+```{python}
+## crear mapa
+map = leafmap.Map(center = [40, -100], zoom = 5, height = '500px')
+
+## añadir mapas base
+map.add_basemap('OpenTopoMap')
+map.add_basemap('USGS.Imagery')
+
+## mostrar mapa
+map
+```
+
+## Análisis vectorial con GeoPandas
+
+Vamos aprender:
+
+* `GeoDataFrame` y `GeoSeries`
+
+* Leer/Exportar datos vectoriales
+
+* Operaciones comunes
+
+* Visualizar datos
+
+* Trabajar con CRS
+
+### Geopandas
+
+Una diferencia con `sf`, es que un `GeoDataFrame` puede tener varias geometrías, pero solamente una está activa en cada momento. La geometría se accede a través del atributo `.geometry`. Vamos a crear un `GeoDataFrame`:
+
+
+```{python}
+## datos
+data = {
+    'City': ['Tokyo', 'New York', 'London', 'Paris'],
+    "Latitude": [35.6895, 40.7128, 51.5074, 48.8566],
+    "Longitude": [139.6917, -74.0060, -0.1278, 2.3522]
+}
+
+## convertir a DataFrame
+df = pd.DataFrame(data)
+
+## convertir a GeoDataFrame
+gdf = gpd.GeoDataFrame(df, geometry = gpd.points_from_xy(df.Longitude, df.Latitude))
+
+## imprimir
+print(gdf)
+```
+
+Leer datos:
+
+
+```{python}
+## url a geojson
+url = "https://github.com/opengeos/datasets/releases/download/vector/nybb.geojson"
+
+## leer
+data_geojson = gpd.read_file(url)
+```
+
+Exportar datos:
+
+```{python}
+gdf.to_file('00_data\\test-data.geojson')
+gdf.to_file('00_data\\test-data.gpkg', layer = "layer1")
+
+gpd.list_layers('00_data\\test-data.gpkg')
+```
+
+### Sistemas de Referencia de Coordenadas
+
+Comprobar CRS:
+
+```{python}
+print(data_geojson.crs)
+```
+
+Reproyectar o transformar CRS:
+
+```{python}
+gdf_4326 = data_geojson.to_crs('EPSG:4326')
+```
+
+### Medidas
+
+Para calular medidas como áreas y distancias, necesitamos un CRS que esté en unidades como metros (p. ej. `EPSG:3857`).
+
+```{python}
+## reproyectar
+gdf_3857 = gdf_4326.to_crs('EPSG:3857')
+
+## crear índice
+gdf_3857.set_index('BoroName', inplace = True)
+```
+
+Calcular área:
+
+```{python}
+## área
+gdf_3857["area"] = gdf_3857.area
+
+## perímetro en km
+gdf_3857["perim"] = gdf_3857.length / 1000
+```
+
+Extraer características geométricas
+
+```{python}
+## centroide
+gdf_3857['centroid'] = gdf_3857.centroid
+
+## bordes
+gdf_3857['boundary'] = gdf_3857.boundary
+```
+
+Distancias: vamos a ver la distancia desde el centroide de Manhattan al resto de centroides
+
+```{python}
+## centroide de referencia
+manhattan_centroid = gdf_3857.loc['Manhattan', 'centroid']
+
+## calcular distancia
+gdf_3857['dist_to_manhattan'] = gdf_3857['centroid'].distance(manhattan_centroid)
+```
+
+Crear buffers:
+
+```{python}
+## crear buffer (metros)
+gdf_3857['buffer'] = gdf_3857.buffer(3000)
+
+## visualizar
+fig, ax = plt.subplots(figsize=(10, 6))
+
+gdf_3857["buffer"].plot(
+    ax        = ax,
+    alpha     = 0.3,
+    color     = "orange",
+    edgecolor = "red",
+    linewidth = 1,
+    label     = "3km Buffer Zone",
+)
+
+gdf_3857.plot(
+    ax        = ax,
+    color     = 'lightblue',
+    linewidth = 1,
+    edgecolor = 'navy',
+    label     = 'Original Boundaries'
+)
+
+plt.title('Distritos y Buffer')
+plt.legend()
+plt.axis('off')
+```
+
+
+Crear convex hulls:
+
+```{python}
+gdf_3857['chull'] = gdf_3857.convex_hull
+```
+
+### Visualización
+
+Vamos a especificar parámetros para mejorar las visualizaciones:
+
+```{python}
+plt.rcParams['figure.dpi'] = 150
+```
+
+Mapa temático:
+
+```{python}
+## crear lienzo
+fig, ax = plt.subplots(figsize = (10, 6))
+
+## añadir mapa
+gdf_3857.plot(
+    column    = 'area',
+    ax        = ax,
+    legend    = True,
+    cmap      = 'YlOrRd',
+    edgecolor = 'black',
+    linewidth = .5
+)
+
+## añadir elementos al mapa
+plt.title('Distritos de NYC por área', fontsize = 16, fontweight = 'bold')
+plt.axis('off')
+plt.tight_layout()
+plt.show()
+```
+
+Mapa interactivo con Folium:
+
+```{python}
+gdf_3857.explore(
+    column  = 'area',
+    cmap    = 'YlOrRd',
+    tooltip = ['area', 'dist_to_manhattan'],
+    popup   = True,
+    legend  = True
+)
+```
+
+
+### Relaciones espaciales
+
+Las relaciones espaciales en Python se estrucutran: `objeto1.relación(objeto2)`. Los métodos `intersects`, `touches`, `crosses`, `contains`, `contains_properly`... devuelven un `Pandas Series` de `True/False`.
+
+Intersección con Manhattan:
+
+```{python}
+## extraer Manhattan
+manhattan_geom = gdf_3857.loc['Manhattan', 'geometry']
+
+## intersección
+intersects_manhattan = gdf_3857.intersects(manhattan_geom)
+
+## filtrar los que intersecan
+gdf_3857.loc[intersects_manhattan, :]
+```
+
+Tocan a Manhattan:
+
+```{python}
+gdf_3857.loc[gdf_3857.touches(manhattan_geom), :]
+```
+
+Comprobar que los centroides están dentro de su polígono:
+
+
+```{python}
+gdf_3857['centroid'].within(gdf_3857.geometry)
+```
+
+### Relaciones binarias (dos geometrías)
+
+```{python}
+gdf_3857['intersection'] = gdf_3857.intersection(manhattan_geom)
+gdf_3857['difference'] = gdf_3857.difference(manhattan_geom)
+
+gdf_3857['intersection'].explore()
+```
+
+### Verificaciones
+
+```{python}
+gdf.is_empty
+gdf.is_valid
+gdf.is_simple
+```
